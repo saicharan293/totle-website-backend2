@@ -1,10 +1,10 @@
 const { Sequelize } = require("sequelize");
 require("dotenv").config();
-const databaseName = "totle_dbv2";
+const databaseName = process.env.DB_NAME || "totle_dbv2";
 
 // Helper function to connect to the MySQL server without specifying a database
 const rootSequelize = new Sequelize({
-  host: "localhost",
+  host: process.env.DB_HOST,
   dialect: "mysql",
   username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -13,7 +13,7 @@ const rootSequelize = new Sequelize({
 
 // Main Sequelize instance for the target database
 const sequelize = new Sequelize(databaseName, process.env.DB_USER, process.env.DB_PASSWORD, {
-  host: "localhost",
+  host: process.env.DB_HOST,
   dialect: "mysql",
   logging: false,
 });
