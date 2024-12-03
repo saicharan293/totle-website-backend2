@@ -25,13 +25,13 @@ sequelize
   });
 
 const googleCors = {
-  origin: "http://localhost:5173",
+  origin: ["http://localhost:5173","https://www.totle.co"],
   credentials: true,
 };
 
 require("dotenv").config();
 
-app.use(cors());
+app.use(cors(googleCors));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
