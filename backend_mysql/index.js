@@ -10,10 +10,6 @@ const Language = require("./models/Language");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const passport = require("passport");
 const jwt = require('jsonwebtoken');
-const Otp = require('./models/Otp');
-const crypto = require("crypto");
-const { google } = require('googleapis');
-const nodemailer = require('nodemailer');
 const multer = require("multer");
 const upload = multer();
 
@@ -576,126 +572,126 @@ app.put("/update-user/:userId", upload.single('image'), async (req, res) => {
 });
 
 
-const oAuth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID, 
-  process.env.GOOGLE_CLIENT_SECRET, 
-  "http://localhost:5000/auth/google/callback" // Redirect URI
-);
+// const oAuth2Client = new google.auth.OAuth2(
+//   process.env.GOOGLE_CLIENT_ID, 
+//   process.env.GOOGLE_CLIENT_SECRET, 
+//   "http://localhost:5000/auth/google/callback" 
+// );
 
-async function getAccessToken(refreshToken) {
-  oAuth2Client.setCredentials({
-    refresh_token: refreshToken,
-  });
+// async function getAccessToken(refreshToken) {
+//   oAuth2Client.setCredentials({
+//     refresh_token: refreshToken,
+//   });
   
-  const { credentials } = await oAuth2Client.refreshAccessToken();
-  return credentials.access_token;
-}
+//   const { credentials } = await oAuth2Client.refreshAccessToken();
+//   return credentials.access_token;
+// }
 
-async function sendOtpEmail(toEmail, otp) {
-  try {
-    const refreshToken = process.env.GMAIL_REFRESH_TOKEN; // Use your stored refresh token
-    const accessToken = await getAccessToken(refreshToken);
+// async function sendOtpEmail(toEmail, otp) {
+//   try {
+//     const refreshToken = process.env.GMAIL_REFRESH_TOKEN; 
+//     const accessToken = await getAccessToken(refreshToken);
 
-    // Setup Nodemailer with Gmail OAuth2
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        type: "OAuth2",
-        user: process.env.GOOGLE_MAIL,
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        refreshToken: refreshToken,
-        accessToken: accessToken,
-      },
-    });
+//     // Setup Nodemailer with Gmail OAuth2
+//     const transporter = nodemailer.createTransport({
+//       service: "gmail",
+//       auth: {
+//         type: "OAuth2",
+//         user: process.env.GOOGLE_MAIL,
+//         clientId: process.env.GOOGLE_CLIENT_ID,
+//         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+//         refreshToken: refreshToken,
+//         accessToken: accessToken,
+//       },
+//     });
 
-    // Send OTP Email
-    await transporter.sendMail({
-      from: process.env.GMAIL_EMAIL,
-      to: toEmail,
-      subject: "Your OTP for Registration",
-      text: `Your OTP for registration is: ${otp}`,
-    });
+//     // Send OTP Email
+//     await transporter.sendMail({
+//       from: process.env.GMAIL_EMAIL,
+//       to: toEmail,
+//       subject: "Your OTP for Registration",
+//       text: `Your OTP for registration is: ${otp}`,
+//     });
 
-    console.log("OTP sent successfully",otp);
+//     console.log("OTP sent successfully",otp);
 
-  } catch (error) {
-    console.error("Error sending OTP: ", error);
-    throw new Error("Failed to send OTP");
-  }
-}
+//   } catch (error) {
+//     console.error("Error sending OTP: ", error);
+//     throw new Error("Failed to send OTP");
+//   }
+// }
 
-app.post("/send-otp", async (req, res) => {
-  const { email } = req.body;
-  console.log('enter')
+// app.post("/send-otp", async (req, res) => {
+//   const { email } = req.body;
+//   console.log('enter')
 
-  if (!email) {
-    return res.status(400).json({ error: true, message: "Email is required" });
-  }
+//   if (!email) {
+//     return res.status(400).json({ error: true, message: "Email is required" });
+//   }
 
-  try {
-    const existingOtp = await Otp.findOne({ where: { email, isVerified: false } });
-    if (existingOtp) {
-      const timeRemaining = new Date(existingOtp.expiry) - new Date();
-      if (timeRemaining > 0) {
-        return res.status(400).json({ error: true, message: "OTP already sent. Please check your email." });
-      }
-    }
-    // Generate a 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+//   try {
+//     const existingOtp = await Otp.findOne({ where: { email, isVerified: false } });
+//     if (existingOtp) {
+//       const timeRemaining = new Date(existingOtp.expiry) - new Date();
+//       if (timeRemaining > 0) {
+//         return res.status(400).json({ error: true, message: "OTP already sent. Please check your email." });
+//       }
+//     }
+//     // Generate a 6-digit OTP
+//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Set OTP and expiry in the database (temporary storage)
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-    await Otp.create({ email, otp, expiry: otpExpiry, isVerified: false });
+//     // Set OTP and expiry in the database (temporary storage)
+//     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+//     await Otp.create({ email, otp, expiry: otpExpiry, isVerified: false });
 
-    // Send OTP via email
-    await sendOtpEmail(email, otp);
+//     // Send OTP via email
+//     await sendOtpEmail(email, otp);
 
-    // Send OTP via email (use a real email service in production)
-    console.log(`Your OTP is: ${otp}`);
+//     // Send OTP via email (use a real email service in production)
+//     console.log(`Your OTP is: ${otp}`);
 
-    return res.status(200).json({
-      message: "OTP sent to your email. Please verify within 10 minutes.",
-    });
-  } catch (error) {
-    console.error("Error sending OTP:", error);
-    return res.status(500).json({ error: true, message: "Internal Server Error" });
-  }
-});
+//     return res.status(200).json({
+//       message: "OTP sent to your email. Please verify within 10 minutes.",
+//     });
+//   } catch (error) {
+//     console.error("Error sending OTP:", error);
+//     return res.status(500).json({ error: true, message: "Internal Server Error" });
+//   }
+// });
 
-app.post("/verify-otp", async (req, res) => {
-  const { email, otp } = req.body;
+// app.post("/verify-otp", async (req, res) => {
+//   const { email, otp } = req.body;
 
-  if (!email || !otp) {
-    return res.status(400).json({ error: true, message: "Email and OTP are required" });
-  }
+//   if (!email || !otp) {
+//     return res.status(400).json({ error: true, message: "Email and OTP are required" });
+//   }
 
-  try {
-    // Find the OTP record in the database
-    const otpRecord = await Otp.findOne({ where: { email, otp, isVerified: false } });
+//   try {
+//     // Find the OTP record in the database
+//     const otpRecord = await Otp.findOne({ where: { email, otp, isVerified: false } });
 
-    if (!otpRecord) {
-      return res.status(400).json({ error: true, message: "Invalid OTP" });
-    }
+//     if (!otpRecord) {
+//       return res.status(400).json({ error: true, message: "Invalid OTP" });
+//     }
 
-    // Check if OTP has expired
-    const currentTime = new Date();
-    if (currentTime > otpRecord.expiry) {
-      return res.status(400).json({ error: true, message: "OTP has expired" });
-    }
+//     // Check if OTP has expired
+//     const currentTime = new Date();
+//     if (currentTime > otpRecord.expiry) {
+//       return res.status(400).json({ error: true, message: "OTP has expired" });
+//     }
 
-    // Mark OTP as verified
-    otpRecord.isVerified = true;
-    await otpRecord.save();
+//     // Mark OTP as verified
+//     otpRecord.isVerified = true;
+//     await otpRecord.save();
 
-    return res.status(200).json({
-      message: "OTP verified successfully. You can proceed with registration.",
-    });
-  } catch (error) {
-    console.error("Error verifying OTP:", error);
-    return res.status(500).json({ error: true, message: "Internal Server Error" });
-  }
-});
+//     return res.status(200).json({
+//       message: "OTP verified successfully. You can proceed with registration.",
+//     });
+//   } catch (error) {
+//     console.error("Error verifying OTP:", error);
+//     return res.status(500).json({ error: true, message: "Internal Server Error" });
+//   }
+// });
 
 
 
