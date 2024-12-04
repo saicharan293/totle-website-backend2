@@ -2,7 +2,7 @@
 Required installations through console:
 
     npm init -y
-    npm i dotenv mongoose express bcrypt jsonwebtoken express-rate-limit sequelize passport-google-oauth20
+    npm i dotenv mongoose express bcrypt jsonwebtoken express-rate-limit sequelize passport-google-oauth20 crypto body-parser nodemailer
 
 Mongo db set up:
     1.sign into mongodb.com with google

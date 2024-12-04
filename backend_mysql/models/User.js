@@ -7,46 +7,49 @@ const User = sequelize.define("User", {
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    unique: true,  // Email must be unique
+  },
+  isVerified: {   
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,  // Default value for verification status
   },
   googleId: {
     type: DataTypes.STRING,
     allowNull: true,
-    unique: true, 
+    unique: true,  // Google ID should be unique
   },
   firstname: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: false,  // First name cannot be null
   },
   lastname: {
     type: DataTypes.STRING,
+    allowNull: true,  // Last name is optional
   },
-  // mobile: {
-  //   type: DataTypes.STRING,
-  //   allowNull: true,
-  // },
   password: {
     type: DataTypes.STRING,
-    allowNull: true,
+    allowNull: true,  // Password is optional (for users signing in via Google)
   },
   bio: {
     type: DataTypes.TEXT,
+    allowNull: true,  // Bio is optional
   },
   preferred_language_id: {
     type: DataTypes.INTEGER,
     references: {
       model: Language,
-      key: "language_id",
+      key: "language_id",  // Foreign key reference to the Language table
     },
+    allowNull: true,  // Preferred language is optional
   },
   known_language_ids: {
     type: DataTypes.JSON,
     allowNull: false,
-    defaultValue: [],
+    defaultValue: [],  // Default empty array for known languages
   },
   image: {
     type: DataTypes.BLOB("long"),
-    allowNull: true,
+    allowNull: true,  // Profile image is optional
   },
   concept_mastery: {
     type: DataTypes.TINYINT,
@@ -193,11 +196,21 @@ const User = sequelize.define("User", {
     validate: { min: 0, max: 10 },
   },
 }, {
-  tableName: "USER",
-  timestamps: false,
+  tableName: "USER",  // Explicit table name (use the existing "USER" table)
+  timestamps: false,  // No auto-created timestamps
+  indexes: [
+    {
+      unique: true,
+      fields: ['email'],  // Email should have a unique index
+    },
+    {
+      unique: true,
+      fields: ['googleId'],  // GoogleId should have a unique index
+    },
+  ],
 });
 
-// Set up relationship
+// Set up relationship (assumes Language model exists)
 User.belongsTo(Language, { foreignKey: "preferred_language_id" });
 
 module.exports = User;
