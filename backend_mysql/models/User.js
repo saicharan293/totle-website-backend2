@@ -7,49 +7,46 @@ const User = sequelize.define("User", {
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,  // Email must be unique
+    unique: true,
   },
-  // isVerified: {   
-  //   type: DataTypes.BOOLEAN,
-  //   defaultValue: false,  
-  // },
   googleId: {
     type: DataTypes.STRING,
     allowNull: true,
-    unique: true,  // Google ID should be unique
+    unique: true, 
   },
   firstname: {
     type: DataTypes.STRING,
-    allowNull: false,  // First name cannot be null
+    allowNull: false,
   },
   lastname: {
     type: DataTypes.STRING,
-    allowNull: true,  // Last name is optional
   },
+  // mobile: {
+  //   type: DataTypes.STRING,
+  //   allowNull: true,
+  // },
   password: {
     type: DataTypes.STRING,
-    allowNull: true,  // Password is optional (for users signing in via Google)
+    allowNull: true,
   },
   bio: {
     type: DataTypes.TEXT,
-    allowNull: true,  // Bio is optional
   },
   preferred_language_id: {
     type: DataTypes.INTEGER,
     references: {
       model: Language,
-      key: "language_id",  // Foreign key reference to the Language table
+      key: "language_id",
     },
-    allowNull: true,  // Preferred language is optional
   },
   known_language_ids: {
     type: DataTypes.JSON,
     allowNull: false,
-    defaultValue: [],  // Default empty array for known languages
+    defaultValue: [],
   },
   image: {
     type: DataTypes.BLOB("long"),
-    allowNull: true,  // Profile image is optional
+    allowNull: true,
   },
   concept_mastery: {
     type: DataTypes.TINYINT,
@@ -196,21 +193,11 @@ const User = sequelize.define("User", {
     validate: { min: 0, max: 10 },
   },
 }, {
-  tableName: "USER",  // Explicit table name (use the existing "USER" table)
-  timestamps: false,  // No auto-created timestamps
-  indexes: [
-    {
-      unique: true,
-      fields: ['email'],  // Email should have a unique index
-    },
-    {
-      unique: true,
-      fields: ['googleId'],  // GoogleId should have a unique index
-    },
-  ],
+  tableName: "USER",
+  timestamps: false,
 });
 
-// Set up relationship (assumes Language model exists)
+// Set up relationship
 User.belongsTo(Language, { foreignKey: "preferred_language_id" });
 
 module.exports = User;
