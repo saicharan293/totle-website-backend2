@@ -9,10 +9,10 @@ const User = sequelize.define("User", {
     allowNull: false,
     unique: true,  // Email must be unique
   },
-  isVerified: {   
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,  // Default value for verification status
-  },
+  // isVerified: {   
+  //   type: DataTypes.BOOLEAN,
+  //   defaultValue: false,  
+  // },
   googleId: {
     type: DataTypes.STRING,
     allowNull: true,
