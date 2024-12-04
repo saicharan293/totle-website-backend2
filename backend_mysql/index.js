@@ -363,7 +363,7 @@ app.post("/login-user", loginLimiter, async (req, res) => {
     }
 
     // Validate password using bcrypt
-    const match = await bcrypt.compare(password, existingUser.password);
+    const match = comparePassword(password, existingUser.password);
     if (!match) {
       return res
         .status(401)
