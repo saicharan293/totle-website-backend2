@@ -628,7 +628,7 @@ app.post("/send-otp", async (req, res) => {
 
     // No existing OTP, create a new record
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 1 * 60 * 1000); // 1-minute expiry
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5-minute expiry
 
     await Otp.create({ email, otp, expiry: otpExpiry, isVerified: false });
 
