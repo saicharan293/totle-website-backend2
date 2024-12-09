@@ -10,7 +10,6 @@ const {Language,insertLanguages} = require("./models/Language");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const passport = require("passport");
 const Otp = require("./models/Otp");
-const { google } = require("googleapis");
 const nodemailer = require("nodemailer");
 const jwt = require('jsonwebtoken');
 const multer = require("multer");
@@ -178,7 +177,7 @@ const generateToken = (user) => {
 app.get('/insert-languages', async (req, res) => {
   try {
     await insertLanguages();  // Call the insertLanguages function from your model
-    console.log('entered')
+    // console.log('entered')
     res.status(200).json({ message: 'Languages inserted successfully.' });
   } catch (error) {
     console.error('Error inserting languages:', error);
@@ -199,8 +198,6 @@ app.post("/signup-user", signupLimiter, async (req, res) => {
 
   console.log(email)
   try {
-    // Validate required fields
-    //if (!username) return res.status(400).json({ error: true, message: "Username is required" });
     if (!firstname)
       return res
         .status(400)
@@ -213,10 +210,6 @@ app.post("/signup-user", signupLimiter, async (req, res) => {
       return res
         .status(400)
         .json({ error: true, message: "Password is required" });
-    // if (!mobile)
-    //   return res
-    //     .status(400)
-    //     .json({ error: true, message: "Mobile number is required" });
     if (!preferredLanguage)
       return res
         .status(400)
@@ -238,7 +231,7 @@ app.post("/signup-user", signupLimiter, async (req, res) => {
     }
 
     // Log preferred language for debugging
-    console.log("Preferred Language Provided:", preferredLanguage);
+    // console.log("Preferred Language Provided:", preferredLanguage);
 
     // Fetch the preferredLanguage_id based on the provided language name
     const language = await Language.findOne({
@@ -259,42 +252,20 @@ app.post("/signup-user", signupLimiter, async (req, res) => {
       where: { language_id: knownLanguages },
       attributes: ["language_id"],
     });
-    console.log(validLanguages.length, knownLanguages.length)
+
     if (validLanguages.length !== knownLanguages.length) {
       return res
         .status(400)
         .json({ error: true, message: "Some known languages are invalid" });
     }
 
-    const knownLanguageIds = validLanguages.map((lang) => lang.language_id);
-
-    const hashedPassword = await hashPassword(password);
-
-    // Insert new user into the database
-    const newUser = await User.create({
-      email,
-      password: hashedPassword,
-      // mobile,
-      firstname,
-      lastname,
-      preferred_language_id: preferredLanguage,
-      known_language_ids: knownLanguages,
-    });
-
-    if (newUser) {
-      return res.status(201).json({
-        email,
-        // mobile,
-        firstname,
-        lastname,
-        preferredLanguage,
-        knownLanguages,
-      });
+    const result= await sendOTP(email);
+    if (result.error) {
+      return res.status(400).json({ error: true, message: result.message });
     } else {
-      return res
-        .status(500)
-        .json({ error: true, message: "Failed to create user" });
+      return res.status(200).json({ message: result.message });
     }
+    
   } catch (error) {
     console.error("Error during signup: ", error);
     return res.status(500).json({
@@ -303,6 +274,43 @@ app.post("/signup-user", signupLimiter, async (req, res) => {
     });
   }
 });
+
+app.post('/verify-signup', async(req,res)=>{
+  const {email, otp, firstname, password, preferredLanguage, lastname, knownLanguages} = req.body;
+  try {
+    const result = await verifyOtp(email, otp);
+    if (result.error) {
+      return res.status(400).json({ error: true, message: result.message });
+    } else {
+      const hashedPassword = await hashPassword(password);
+      // Insert new user into the database
+      const newUser = await User.create({
+        email,
+        password: hashedPassword,
+        firstname,
+        lastname,
+        preferred_language_id: preferredLanguage,
+        known_language_ids: knownLanguages,
+      });
+      if (newUser) {
+        return res.status(201).json({
+          email,
+          firstname,
+          lastname,
+          preferredLanguage,
+          knownLanguages,
+        });
+      } else {
+        console.error("Error during signup: ", error);
+        return res
+          .status(500)
+          .json({ error: true, message: "Failed to create user" });
+      }
+    }
+  } catch (error) {
+    return res.status(400).json({ error: true, message: " Internal server error"})
+  }
+})
 
 app.post("/login-user", loginLimiter, async (req, res) => {
   const { email, password } = req.body;
@@ -593,13 +601,7 @@ async function sendOtpEmail(toEmail, otp) {
   }
 }
 
-// Route to send OTP
-app.post("/send-otp", async (req, res) => {
-  const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ error: true, message: "Email is required" });
-  }
+async function sendOTP(email){
 
   try {
     const existingOtp = await Otp.findOne({ where: { email } });
@@ -616,14 +618,14 @@ app.post("/send-otp", async (req, res) => {
 
       // Update the existing OTP record
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const otpExpiry = new Date(Date.now() + 1 * 60 * 1000); // 1-minute expiry
+      const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 1-minute expiry
 
       await existingOtp.update({ otp, expiry: otpExpiry, isVerified: false });
 
       await sendOtpEmail(email, otp); // Send OTP email
-      return res.status(200).json({
+      return {
         message: "OTP sent to your email. Please verify within 1 minute.",
-      });
+      };
     }
 
     // No existing OTP, create a new record
@@ -633,26 +635,29 @@ app.post("/send-otp", async (req, res) => {
     await Otp.create({ email, otp, expiry: otpExpiry, isVerified: false });
 
     await sendOtpEmail(email, otp); // Send OTP email
-    return res.status(200).json({
+    return {
       message: "OTP sent to your email. Please verify within 1 minute.",
-    });
+    };
   } catch (error) {
     console.error("Error sending OTP:", error);
-    return res
-      .status(500)
-      .json({ error: true, message: "Internal Server Error" });
+    return { error: true, message: "Internal Server Error" };
+  }
+}
+// Route to send OTP for forgot password
+app.post("/send-otp", async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: true, message: "Email is required" });
+  }
+  const result= await sendOTP(email);
+  if (result.error) {
+    return res.status(400).json({ error: true, message: result.message });
+  } else {
+    return res.status(200).json({ message: result.message });
   }
 });
 
-// Route to verify OTP
-app.post("/verify-otp", async (req, res) => {
-  const { email, otp } = req.body;
-
-  if (!email || !otp) {
-    return res
-      .status(400)
-      .json({ error: true, message: "Email and OTP are required" });
-  }
+async function verifyOtp(email,otp){
 
   try {
     const otpRecord = await Otp.findOne({
@@ -660,27 +665,41 @@ app.post("/verify-otp", async (req, res) => {
     });
 
     if (!otpRecord) {
-      return res.status(400).json({ error: true, message: "Invalid OTP" });
+      return { error: true, message: "Invalid OTP" };
     }
 
     const currentTime = new Date();
     if (currentTime > otpRecord.expiry) {
-      return res.status(400).json({ error: true, message: "OTP has expired" });
+      return { error: true, message: "OTP has expired" };
     }
 
     // Mark OTP as verified
     otpRecord.isVerified = true;
     await otpRecord.save();
 
-    return res.status(200).json({
-      message: "OTP verified successfully. You can proceed with registration.",
-    });
+    return {
+      message: "OTP verified successfully. You can proceed",
+    };
   } catch (error) {
     console.error("Error verifying OTP:", error);
-    return res
-      .status(500)
-      .json({ error: true, message: "Internal Server Error" });
+    return { error: true, message: "Internal Server Error" };
   }
+}
+
+// Route to verify OTP
+app.post("/verify-otp", async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res.status(400).json({ error: true, message: "Email and OTP are required" });
+  }
+
+  const result = await verifyOtp(email, otp);
+  if (result.error) {
+    return res.status(400).json({ error: true, message: result.message });
+  } else {
+    return res.status(200).json({ message: result.message });
+  }
+
 });
 
 // Reset Password Endpoint
@@ -713,6 +732,7 @@ app.post('/reset-password', async (req, res) => {
     return res.status(500).json({ error: true, message: 'Internal Server Error' });
   }
 });
+
 
 
 app.listen(process.env.PORT, () =>
