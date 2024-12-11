@@ -154,6 +154,7 @@ const loginLimiter = rateLimit({
 
 // Utility function to hash the password
 const hashPassword = async (password) => {
+  console.log('hash started')
   const saltRounds = 10;
   return await bcrypt.hash(password, saltRounds);
 };
@@ -281,32 +282,17 @@ app.post('/verify-signup', async(req,res)=>{
     const result = await verifyOtp(email, otp);
     if (result.error) {
       return res.status(400).json({ error: true, message: result.message });
-    } else {
-      const hashedPassword = await hashPassword(password);
-      // Insert new user into the database
-      const newUser = await User.create({
-        email,
-        password: hashedPassword,
-        firstname,
-        lastname,
-        preferred_language_id: preferredLanguage,
-        known_language_ids: knownLanguages,
-      });
-      if (newUser) {
-        return res.status(201).json({
-          email,
-          firstname,
-          lastname,
-          preferredLanguage,
-          knownLanguages,
-        });
-      } else {
-        console.error("Error during signup: ", error);
-        return res
-          .status(500)
-          .json({ error: true, message: "Failed to create user" });
-      }
-    }
+    } 
+    const hashedPassword = await hashPassword(password);
+    const newUser = await User.create({
+      email,
+      password: hashedPassword,
+      firstname,
+      lastname,
+      preferred_language_id: preferredLanguage,
+      known_language_ids: knownLanguages,
+    });
+    return res.status(201).json({ error: false, message: "User created successfully" });
   } catch (error) {
     return res.status(400).json({ error: true, message: " Internal server error"})
   }
@@ -658,7 +644,6 @@ app.post("/send-otp", async (req, res) => {
 });
 
 async function verifyOtp(email,otp){
-
   try {
     const otpRecord = await Otp.findOne({
       where: { email, otp, isVerified: false },
@@ -676,8 +661,8 @@ async function verifyOtp(email,otp){
     // Mark OTP as verified
     otpRecord.isVerified = true;
     await otpRecord.save();
-
     return {
+      error: false,
       message: "OTP verified successfully. You can proceed",
     };
   } catch (error) {
@@ -697,7 +682,7 @@ app.post("/verify-otp", async (req, res) => {
   if (result.error) {
     return res.status(400).json({ error: true, message: result.message });
   } else {
-    return res.status(200).json({ message: result.message });
+    return res.status(200).json({error: false, message: result.message });
   }
 
 });

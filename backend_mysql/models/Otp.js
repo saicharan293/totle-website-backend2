@@ -8,7 +8,7 @@ const Otp = sequelize.define("Otp", {
       unique: true,
     },
     otp: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     expiry: {
