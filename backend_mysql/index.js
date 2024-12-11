@@ -325,9 +325,8 @@ app.post("/login-user", loginLimiter, async (req, res) => {
         .status(400)
         .json({ error: true, message: "User doesn't exist, please register" });
     }
-
     // Validate password using bcrypt
-    const match = comparePassword(password, existingUser.password);
+    const match = await comparePassword(password, existingUser.password);
     if (!match) {
       return res
         .status(401)
@@ -359,7 +358,7 @@ app.post("/login-user", loginLimiter, async (req, res) => {
       knownLanguages// Include known languages, default to empty array
     };
 
-    return res.status(200).json({ message: "Login successful", token, user: userData });
+    return res.status(200).json({error:false, message: "Login successful", token, user: userData });
   } catch (error) {
     console.error("Error during login: ", error);
     return res
